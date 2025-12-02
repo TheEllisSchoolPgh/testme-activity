@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PyIDE - Mobile Friendly</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- CodeMirror Core -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    
+    <!-- CodeMirror Themes (Dark & Light) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/eclipse.min.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/closebrackets.min.js"></script>
+
+    <!-- Markdown Parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <style>
+        /* --- THEME VARIABLES --- */
+        :root {
+            /* DARK THEME (Default) */
+            --bg-dark: #1e1e2e;
+            --bg-panel: #282a36;
+            --bg-header: #181825;
+            --bg-input: #44475a;
+            --accent: #bd93f9;
+            --accent-hover: #a578e6;
+            --text-main: #f8f8f2;
+            --text-dim: #6272a4;
+            --border: #44475a;
+            --success: #50fa7b;
+            --error: #ff5555;
+            --warning: #ffb86c;
+            --code-bg: #282a36;
+        }
+
+        /* LIGHT THEME OVERRIDES */
+        [data-theme="light"] {
+            --bg-dark: #f3f4f6;
+            --bg-panel: #ffffff;
+            --bg-header: #e5e7eb;
+            --bg-input: #ffffff;
+            --accent: #7c3aed;
+            --accent-hover: #6d28d9;
+            --text-main: #1f2937;
+            --text-dim: #6b7280;
+            --border: #d1d5db;
+            --success: #059669;
+            --error: #dc2626;
+            --warning: #d97706;
+            --code-bg: #ffffff;
+        }
+		
+		.toolbar .std-btn {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			gap: 6px;
+            white-space: nowrap; /* Prevent text wrap in toolbar */
+		}
+
+		.btn-icon {
+			width: 16px;
+			height: 16px;
+			fill: var(--success); 
+			flex-shrink: 0;
+		}
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; padding: 0; font-family: 'Inter', sans-serif; background-color: var(--bg-dark); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; transition: background-color 0.3s, color 0.3s; }
+        
+        body.resizing { cursor: col-resize; user-select: none; }
+
+        header { height: 50px; background-color: var(--bg-header); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 15px; justify-content: space-between; flex-shrink: 0; transition: background-color 0.3s; gap: 10px; }
+        
+        .brand { font-weight: 600; font-size: 1.1rem; color: var(--accent); display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .status-badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; background: var(--bg-panel); color: var(--text-dim); border: 1px solid var(--border); white-space: nowrap; }
+        .status-badge.ready { color: var(--success); background: rgba(80, 250, 123, 0.1); }
+        .status-badge.busy { color: var(--warning); background: rgba(255, 184, 108, 0.1); }
+        .status-badge.error { color: var(--error); background: rgba(255, 85, 85, 0.1); }
+
+        .workspace { display: flex; flex: 1; overflow: hidden; position: relative; }
+        .main-area { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+        .split-view { display: flex; flex: 1; flex-direction: row; min-height: 0; }
+        
+        .panel { display: flex; flex-direction: column; flex: 1; min-width: 150px; min-height: 0; background-color: var(--bg-panel); transition: background-color 0.3s; }
+        
+        /* --- GUTTER STYLES --- */
+        .gutter { width: 8px; background-color: var(--bg-dark); cursor: col-resize; border-left: 1px solid var(--border); border-right: 1px solid var(--border); transition: background-color 0.2s; flex-shrink: 0; z-index: 10; }
+        .gutter:hover, .gutter.dragging { border-color: var(--accent); }
+
+        .panel-header { padding: 10px 15px; background-color: var(--bg-header); font-size: 0.85rem; font-weight: 500; color: var(--text-dim); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); transition: background-color 0.3s; flex-shrink: 0; }
+        
+        .editor-wrapper { flex: 1; position: relative; overflow: hidden; }
+        .CodeMirror { height: 100% !important; font-family: 'JetBrains Mono', monospace; font-size: 14px; line-height: 1.5; background-color: var(--code-bg) !important;}
+
+        .console-output { flex: 1; background-color: var(--bg-panel); color: var(--text-main); padding: 15px; font-family: 'JetBrains Mono', monospace; font-size: 14px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word; transition: background-color 0.3s; -webkit-overflow-scrolling: touch; }
+        .log-entry { margin-bottom: 2px; }
+        .log-input { color: var(--success); font-weight: bold; }
+        .log-error { color: var(--error); }
+        .log-system { color: var(--text-dim); font-style: italic; font-size: 0.9em; margin: 10px 0; border-top: 1px solid var(--border); padding-top: 5px; border-bottom: 1px solid var(--border); padding-bottom: 5px;}
+        .log-plot { display: block; max-width: 100%; border-radius: 4px; margin: 10px 0; background: white; padding: 5px; border: 1px solid var(--border); }
+
+        /* AI Sidebar Desktop Default */
+        .ai-sidebar { width: 380px; background-color: var(--bg-dark); border-left: 1px solid var(--border); display: flex; flex-direction: column; transition: width 0.3s ease, background-color 0.3s; position: relative; z-index: 50; }
+        .ai-sidebar.collapsed { width: 0; border-left: none; overflow: hidden; }
+        
+        .chat-history { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 15px; -webkit-overflow-scrolling: touch; }
+        .chat-message { padding: 10px 14px; border-radius: 8px; font-size: 0.9rem; line-height: 1.5; max-width: 95%; }
+        .chat-message.user { background-color: var(--bg-input); align-self: flex-end; color: var(--text-main); border-bottom-right-radius: 2px; border: 1px solid var(--border); }
+        .chat-message.ai { background-color: var(--bg-panel); align-self: flex-start; border: 1px solid var(--border); border-bottom-left-radius: 2px; }
+        .chat-message code { background: rgba(125, 125, 125, 0.2); padding: 2px 5px; border-radius: 3px; font-family: 'JetBrains Mono', monospace; color: var(--accent); }
+        .chat-message pre { background: var(--bg-header); padding: 10px; border-radius: 4px; overflow-x: auto; margin: 10px 0; border: 1px solid var(--border); }
+        
+        .chat-input-area { padding: 15px; background-color: var(--bg-header); border-top: 1px solid var(--border); display: flex; gap: 10px; flex-direction: column; flex-shrink: 0; }
+        .input-row { display: flex; gap: 10px; }
+        .chat-input { flex: 1; background-color: var(--bg-input); border: 1px solid var(--border); border-radius: 4px; color: var(--text-main); padding: 10px; resize: none; height: 50px; font-family: inherit; }
+        
+        .ai-settings-panel { background-color: var(--bg-panel); padding: 15px; border-bottom: 1px solid var(--border); display: none; }
+        .ai-settings-panel.active { display: block; }
+        .settings-row { margin-bottom: 10px; }
+        .settings-row label { display: block; font-size: 0.75rem; margin-bottom: 5px; color: var(--text-dim); }
+        .settings-row input { width: 100%; padding: 8px; background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-main); border-radius: 4px; font-family: 'JetBrains Mono', monospace; }
+
+        /* Toolbar / Buttons */
+        .toolbar { display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+        .toolbar::-webkit-scrollbar { display: none; } /* Hide scrollbar for cleaner look */
+        
+        .icon-btn { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 1.1rem; padding: 5px; border-radius: 4px;}
+        .icon-btn:hover { color: var(--text-main); background: var(--bg-panel); }
+        button.std-btn { background-color: var(--bg-panel); color: var(--text-main); border: 1px solid var(--border); padding: 6px 12px; border-radius: 4px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; font-family: 'Inter', sans-serif; font-weight: 500; flex-shrink: 0; }
+        button.std-btn:hover:not(:disabled) { background-color: var(--border); }
+        button.primary { background-color: var(--accent); color: #fff; border-color: var(--accent); }
+        button.primary:hover:not(:disabled) { background-color: var(--accent-hover); }
+        button.stop-btn { background-color: var(--error); color: white; border-color: var(--error); }
+        button.stop-btn:hover { background-color: #ff3333; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(2px); }
+        .overlay.active { display: flex; }
+        .modal { background: var(--bg-panel); width: 500px; padding: 25px; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-height: 85vh; display: flex; flex-direction: column; }
+        textarea.pkg-input { width: 100%; height: 80px; background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-main); padding: 10px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; resize: vertical; margin: 10px 0; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
+        .installed-section { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 15px; overflow: hidden; display: flex; flex-direction: column; flex: 1; }
+        .installed-header { font-size: 0.9rem; color: var(--text-dim); margin-bottom: 10px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+        .pkg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; overflow-y: auto; padding-right: 5px; max-height: 200px; }
+        .pkg-badge { background-color: var(--bg-input); border: 1px solid var(--border); border-radius: 4px; padding: 6px 10px; font-size: 0.8rem; color: var(--text-main); display: flex; flex-direction: column; }
+        .pkg-name { font-weight: 600; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .pkg-ver { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
+
+        /* --- MOBILE / RESPONSIVE STYLES --- */
+        @media (max-width: 768px) {
+            header { padding: 0 10px; }
+            
+            /* Compact Header: Hide full logo text if tight, keep status */
+            .brand span:first-child { display: none; } 
+            .brand::before { content: "🐍"; display: inline-block; font-size: 1.2rem; }
+
+            /* Stack Editor and Console vertically */
+            .split-view { flex-direction: column; }
+            
+            /* Hide the drag gutter on mobile (resizing is messy with touch) */
+            .gutter { display: none; }
+            
+            /* Force panels to split 50/50 vertically initially */
+            .panel { width: 100% !important; flex: 1 !important; height: auto !important; }
+
+            /* Make AI sidebar a full-screen overlay */
+            .ai-sidebar {
+                position: absolute;
+                top: 0; left: 0; right: 0; bottom: 0;
+                width: 100% !important;
+                border-left: none;
+                z-index: 200; /* Sit above editor/console */
+            }
+
+            /* When collapsed, hide completely or move off-screen */
+            .ai-sidebar.collapsed { width: 0 !important; display: none; }
+
+            /* Mobile Modal Adjustments */
+            .modal { width: 90%; padding: 15px; max-height: 90vh; }
+            .pkg-grid { grid-template-columns: 1fr; } /* List view for pkgs */
+
+            /* Bigger touch targets */
+            button.std-btn { padding: 8px 12px; }
+            
+            /* Prevent zoom on inputs for iOS */
+            input, textarea { font-size: 16px !important; }
+            .CodeMirror { font-size: 13px; } /* Slightly smaller code to fit more */
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">
+            <span>🐍 PyIDE</span>
+            <span id="status" class="status-badge">Initializing...</span>
+        </div>
+        <div class="toolbar">
+            <button id="btn-theme" class="icon-btn" title="Toggle Theme">🌙</button>
+            <div style="width: 1px; height: 20px; background: var(--border); margin: 0 5px; flex-shrink: 0;"></div>
+            <button id="btn-packages" class="std-btn">📦 Packages</button>
+			<button id="btn-ai-toggle" class="std-btn" style="border-color: var(--accent); color: var(--accent);">
+				<svg class="btn-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+					<path d="M9 2L10.5 7.5L16 9L10.5 10.5L9 16L7.5 10.5L2 9L7.5 7.5L9 2Z"/>
+					<path d="M17 15L18 18L21 19L18 20L17 23L16 20L13 19L16 18L17 15Z"/>
+				</svg>
+				AI
+			</button>
+            <button id="btn-clear" class="std-btn">Clear</button>
+            <button id="btn-run" class="std-btn primary" disabled>
+                <span>▶</span> Run
+            </button>
+        </div>
+    </header>
+
+    <div class="workspace">
+        <div class="main-area">
+            <div class="split-view" id="split-view">
+                <!-- Editor -->
+                <div class="panel" id="editor-panel">
+                    <div class="panel-header"><span>main.py</span></div>
+                    <div class="editor-wrapper">
+                        <textarea id="code-editor"></textarea>
+                    </div>
+                </div>
+                
+                <!-- DRAGGABLE GUTTER -->
+                <div class="gutter" id="resize-gutter"></div>
+
+                <!-- Console -->
+                <div class="panel" id="console-panel">
+                    <div class="panel-header">
+                        <span>Console</span>
+                        <small style="color: var(--text-dim);">stdout</small>
+                    </div>
+                    <div id="console-output" class="console-output"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Sidebar -->
+        <div id="ai-sidebar" class="ai-sidebar collapsed">
+            <div class="panel-header" style="background-color: var(--bg-panel);">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <button id="btn-ai-close-mobile" class="icon-btn" style="display:none;">←</button>
+                    <span>AI Tutor</span>
+                </div>
+                <button id="btn-ai-settings" class="icon-btn">⚙️</button>
+            </div>
+            
+            <div id="ai-settings-panel" class="ai-settings-panel">
+                <div class="settings-row">
+                    <label>API Endpoint</label>
+                    <input type="text" id="ai-endpoint" value="https://generativelanguage.googleapis.com/v1beta/openai/chat/completions">
+                </div>
+                <div class="settings-row">
+                    <label>API Key</label>
+                    <input type="password" id="ai-key" placeholder="sk-...">
+                </div>
+                <div class="settings-row">
+                    <label>Model Name</label>
+                    <input type="text" id="ai-model" value="gemini-2.0-flash">
+                </div>
+                <button id="btn-save-settings" class="std-btn primary" style="width: 100%">Save & Close</button>
+            </div>
+
+            <div id="chat-history" class="chat-history">
+                <div class="chat-message ai">
+                    <strong>Hi there! Welcome to your Python journey.</strong><br><br>
+                    I'm your friendly <strong>AI Tutor</strong>. I can see your code and output in real-time.<br><br>
+                    <strong>Try this:</strong><br>
+                    1. Click the <strong>Run ▶</strong> button to see the code work.<br>
+                    2. If you get stuck, ask me: <em>"How does this code work?"</em> or <em>"Why is there an error?"</em>.<br><br>
+                    <small><em>(Don't forget to set your API Key in the settings ⚙️ to chat!)</em></small>
+                </div>            
+            </div>
+            
+            <div class="chat-input-area">
+                <div class="input-row">
+                    <textarea id="chat-input" class="chat-input" placeholder="Type a message..."></textarea>
+                    <button id="btn-send-chat" class="std-btn primary">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Package Modal -->
+    <div id="pkg-modal" class="overlay">
+        <div class="modal">
+            <h3 style="margin-top:0; color:var(--accent)">Install Packages</h3>
+            <textarea id="pkg-list" class="pkg-input" placeholder="numpy&#10;pandas"></textarea>
+            <div class="modal-actions">
+                <button id="btn-close-pkg" class="std-btn">Close</button>
+                <button id="btn-install-pkg" class="std-btn primary">Install</button>
+            </div>
+            
+            <div class="installed-section">
+                <div class="installed-header">
+                    <span>Installed Libraries</span>
+                    <small id="pkg-count">0 items</small>
+                </div>
+                <div id="installed-pkgs" class="pkg-grid">
+                    <span style="color:var(--text-dim); font-size:0.8rem;">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 0. SPLIT PANE CONTROLLER ---
+        class DragController {
+            constructor() {
+                this.gutter = document.getElementById('resize-gutter');
+                this.leftPanel = document.getElementById('editor-panel');
+                this.rightPanel = document.getElementById('console-panel');
+                this.container = document.getElementById('split-view');
+                
+                this.isDragging = false;
+                
+                // Only enable drag on desktop (simple check)
+                if(window.innerWidth > 768) {
+                    this.gutter.addEventListener('mousedown', (e) => this.startDrag(e));
+                }
+            }
+
+            startDrag(e) {
+                this.isDragging = true;
+                this.gutter.classList.add('dragging');
+                document.body.classList.add('resizing'); // Prevents text selection
+                
+                window.addEventListener('mousemove', this.doDrag.bind(this));
+                window.addEventListener('mouseup', this.stopDrag.bind(this));
+            }
+
+            doDrag(e) {
+                if (!this.isDragging) return;
+                
+                const containerRect = this.container.getBoundingClientRect();
+                let newLeftWidth = e.clientX - containerRect.left;
+                
+                // Constraints
+                if (newLeftWidth < 150) newLeftWidth = 150;
+                if (newLeftWidth > containerRect.width - 150) newLeftWidth = containerRect.width - 150;
+
+                const percent = (newLeftWidth / containerRect.width) * 100;
+                
+                this.leftPanel.style.flex = "none";
+                this.leftPanel.style.width = `${percent}%`;
+            }
+
+            stopDrag() {
+                this.isDragging = false;
+                this.gutter.classList.remove('dragging');
+                document.body.classList.remove('resizing');
+                
+                window.removeEventListener('mousemove', this.doDrag.bind(this));
+                window.removeEventListener('mouseup', this.stopDrag.bind(this));
+            }
+        }
+
+        // --- 1. CONSOLE MANAGER ---
+        class Console {
+            constructor(elementId) {
+                this.element = document.getElementById(elementId);
+                this.outputHistory = ""; 
+                this.latestRunOutput = "";
+            }
+
+            startNewRun() {
+                this.latestRunOutput = "";
+                this.system("--- STARTING NEW EXECUTION ---");
+            }
+
+            write(text, type = 'normal') {
+                if (!text) return;
+                
+                const entry = text + "\n";
+                this.outputHistory += entry;
+                this.latestRunOutput += entry;
+
+                if(this.outputHistory.length > 50000) this.outputHistory = this.outputHistory.slice(-50000);
+
+                const span = document.createElement('span');
+                span.className = `log-entry log-${type}`;
+                span.textContent = text;
+                this.element.appendChild(span);
+                this.scrollToBottom();
+            }
+
+            plot(base64Str) {
+                const img = document.createElement('img');
+                img.src = base64Str;
+                img.className = 'log-plot';
+                this.element.appendChild(img);
+                
+                const marker = "[GRAPHICAL PLOT DISPLAYED]\n";
+                this.outputHistory += marker;
+                this.latestRunOutput += marker;
+                this.scrollToBottom();
+            }
+
+            system(text, type='normal') {
+                const div = document.createElement('div');
+                div.className = 'log-system';
+                if(type === 'error') div.style.color = 'var(--error)';
+                div.textContent = `> ${text}`;
+                this.element.appendChild(div);
+                this.scrollToBottom();
+            }
+
+            clear() {
+                this.element.innerHTML = '';
+                this.outputHistory = "";
+                this.latestRunOutput = "";
+            }
+
+            scrollToBottom() { this.element.scrollTop = this.element.scrollHeight; }
+            getHistory() { return this.outputHistory; }
+            getLatest() { return this.latestRunOutput; }
+        }
+
+        // --- 2. WEB WORKER CODE (UNCHANGED) ---
+        const WORKER_CODE = `
+            importScripts("https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js");
+
+            let pyodide = null;
+            let inputSharedBuffer = null;
+            let inputContentBuffer = null;
+
+            self.py_stdout = (text) => postMessage({type: "STDOUT", text: text});
+            self.py_plot = (data) => postMessage({type: "PLOT", data: data});
+            self.py_input_req = (prompt) => postMessage({type: "INPUT_REQUEST", prompt: prompt});
+
+            async function loadPyodideEnv() {
+                pyodide = await loadPyodide();
+                await pyodide.loadPackage("micropip");
+                
+                const pythonSetup = \`
+import sys, js
+import time
+
+def web_input(prompt_text=""):
+    js.py_input_req(prompt_text)
+    try:
+        js.wait_for_input()
+        return js.read_input_buffer()
+    except Exception as e:
+        return ""
+
+__builtins__.input = web_input
+
+class WebOutput:
+    def write(self, text): js.py_stdout(text)
+    def flush(self): pass
+
+sys.stdout = WebOutput()
+sys.stderr = WebOutput()
+                \`;
+                await pyodide.runPythonAsync(pythonSetup);
+                postMessage({type: "READY"});
+            }
+
+            self.onmessage = async (e) => {
+                const { cmd, code, buffer, contentBuffer, packages } = e.data;
+
+                if (cmd === 'init') {
+                    if(buffer) {
+                        inputSharedBuffer = new Int32Array(buffer);
+                        inputContentBuffer = new Uint8Array(contentBuffer);
+                    }
+                    await loadPyodideEnv();
+                }
+
+                if (cmd === 'run') {
+                    try {
+                        await pyodide.runPythonAsync(code);
+                        // Plot Check
+                        await pyodide.runPythonAsync(\`
+import sys, io, base64, js
+if 'matplotlib.pyplot' in sys.modules:
+    plt = sys.modules['matplotlib.pyplot']
+    for i in plt.get_fignums():
+        plt.figure(i)
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        buf.seek(0)
+        img_str = 'data:image/png;base64,' + base64.b64encode(buf.read()).decode('UTF-8')
+        js.py_plot(img_str)
+        plt.close(i)
+                        \`);
+                        postMessage({type: "FINISHED"});
+                    } catch (err) {
+                        postMessage({type: "ERROR", text: err.toString()});
+                    }
+                }
+
+                if (cmd === 'install') {
+                    try {
+                        await pyodide.loadPackage("micropip");
+                        const micropip = pyodide.pyimport("micropip");
+                        await micropip.install(packages);
+                        postMessage({type: "INSTALL_DONE"});
+                    } catch(err) {
+                        postMessage({type: "ERROR", text: err.toString()});
+                    }
+                }
+
+                if (cmd === 'list_packages') {
+                    try {
+                        const jsonStr = await pyodide.runPythonAsync(\`
+import importlib.metadata, json
+pkgs = []
+try:
+    for dist in importlib.metadata.distributions():
+        pkgs.append({"name": dist.metadata['Name'], "version": dist.version})
+    pkgs.sort(key=lambda x: x['name'].lower())
+except: pass
+json.dumps(pkgs)
+                        \`);
+                        postMessage({type: "PACKAGES_LIST", data: jsonStr});
+                    } catch(err) {
+                        postMessage({type: "PACKAGES_LIST", data: "[]"});
+                    }
+                }
+            };
+
+            self.wait_for_input = () => {
+                if (!inputSharedBuffer) return;
+                Atomics.wait(inputSharedBuffer, 0, 0); 
+                Atomics.store(inputSharedBuffer, 0, 0);
+            }
+
+            self.read_input_buffer = () => {
+                if (!inputContentBuffer) return "";
+                const len = inputSharedBuffer[1]; 
+                const bytes = inputContentBuffer.slice(0, len);
+                return new TextDecoder().decode(bytes);
+            }
+        `;
+
+        // --- 3. AI ASSISTANT ---
+        class AIAssistant {
+            constructor(ideInstance) {
+                this.ide = ideInstance;
+                this.sidebar = document.getElementById('ai-sidebar');
+                this.settingsPanel = document.getElementById('ai-settings-panel');
+                this.chatHistory = document.getElementById('chat-history');
+                this.input = document.getElementById('chat-input');
+                this.btnSend = document.getElementById('btn-send-chat');
+                
+                this.messages = [];
+                
+                this.systemPrompt = `You are an expert Python Tutor for beginners.
+GUIDELINES:
+1. PEDAGOGY: Use the Socratic method. Guide the student; do not give the answer immediately.
+2. INPUT DATA: You are provided with [LATEST RUN OUTPUT] and [PAST CONSOLE LOGS].
+   - **CRITICAL**: Use [LATEST RUN OUTPUT] as the current truth.
+   - Ignore errors in [PAST CONSOLE LOGS] if they are gone in [LATEST RUN OUTPUT].
+3. STALE CODE: If a [SYSTEM NOTE] indicates code has changed since the last run:
+   - Treat the current output as potentially outdated.
+   - Gently suggest the student run the code again to see updated results.
+4. **META-CONSTRAINT**: Do not quote tags like "[LATEST RUN OUTPUT]" in your response. Speak naturally.`;
+
+                this.bindEvents();
+                this.loadSettings();
+                this.checkMobile();
+            }
+
+            checkMobile() {
+                if (window.innerWidth <= 768) {
+                    document.getElementById('btn-ai-close-mobile').style.display = 'block';
+                }
+            }
+
+            toggle() { this.sidebar.classList.toggle('collapsed'); }
+
+            bindEvents() {
+                document.getElementById('btn-ai-toggle').addEventListener('click', () => this.toggle());
+                document.getElementById('btn-ai-close-mobile').addEventListener('click', () => this.sidebar.classList.add('collapsed'));
+                document.getElementById('btn-ai-settings').addEventListener('click', () => this.settingsPanel.classList.toggle('active'));
+                
+                // SAVE SETTINGS
+                document.getElementById('btn-save-settings').addEventListener('click', () => {
+                    this.saveSettings();
+                    this.settingsPanel.classList.remove('active');
+                    this.addMessage("system", "Settings saved successfully.");
+                });
+                
+                this.btnSend.addEventListener('click', () => this.sendMessage());
+                this.input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.sendMessage(); }
+                });
+            }
+
+            loadSettings() {
+                try {
+                    const config = JSON.parse(localStorage.getItem('pyide_ai_config') || '{}');
+                    if (config.key) document.getElementById('ai-key').value = config.key;
+                    if (config.endpoint) document.getElementById('ai-endpoint').value = config.endpoint;
+                    if (config.model) document.getElementById('ai-model').value = config.model;
+                } catch(e) {
+                    console.error("Failed to load settings:", e);
+                }
+            }
+
+            saveSettings() {
+                try {
+                    const config = {
+                        key: document.getElementById('ai-key').value,
+                        endpoint: document.getElementById('ai-endpoint').value,
+                        model: document.getElementById('ai-model').value
+                    };
+                    localStorage.setItem('pyide_ai_config', JSON.stringify(config));
+                } catch(e) {
+                    alert("Could not save settings to LocalStorage.");
+                }
+            }
+
+            addMessage(role, text) {
+                const div = document.createElement('div');
+                div.className = `chat-message ${role}`;
+                if (role === 'ai') div.innerHTML = marked.parse(text);
+                else div.textContent = text;
+                this.chatHistory.appendChild(div);
+                this.chatHistory.scrollTop = this.chatHistory.scrollHeight;
+                return div;
+            }
+
+            async sendMessage() {
+                const userText = this.input.value.trim();
+                const apiKey = document.getElementById('ai-key').value;
+                const endpoint = document.getElementById('ai-endpoint').value;
+                const model = document.getElementById('ai-model').value;
+
+                if (!userText) return;
+                if (!apiKey) {
+                    alert("Please set API Key in settings");
+                    this.settingsPanel.classList.add('active');
+                    return;
+                }
+
+                this.input.value = '';
+                this.addMessage('user', userText);
+                this.btnSend.disabled = true;
+
+                // State Tracking
+                const currentCode = this.ide.editor.getValue();
+                const lastRunCode = this.ide.lastExecutedCode || "";
+                const isStale = currentCode.trim() !== lastRunCode.trim();
+                
+                let warningHeader = "";
+                if(isStale) {
+                    warningHeader = `[SYSTEM NOTE]: User code does NOT match the code that produced the output below. The output might be outdated.`;
+                }
+
+                const contextMessage = `
+${warningHeader}
+
+[CURRENT EDITOR CODE]
+\`\`\`python
+${currentCode}
+\`\`\`
+
+[LATEST RUN OUTPUT] (!!! This is the result of the most recent execution !!!)
+\`\`\`text
+${this.ide.console.getLatest() || "(No output generated in latest run)"}
+\`\`\`
+
+[PAST CONSOLE LOGS] (Old history)
+\`\`\`text
+${this.ide.console.getHistory().substring(0, 2000)}... (truncated)
+\`\`\`
+
+USER QUESTION: ${userText}
+`;
+                
+                const messagesPayload = [
+                    { role: "system", content: this.systemPrompt },
+                    ...this.messages,
+                    { role: "user", content: contextMessage }
+                ];
+
+                const responseDiv = this.addMessage('ai', 'Thinking...');
+                let fullResponse = "";
+
+                try {
+                    const response = await fetch(endpoint, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+                        body: JSON.stringify({ model: model, messages: messagesPayload, stream: true })
+                    });
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder("utf-8");
+                    responseDiv.innerHTML = ""; 
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        const chunk = decoder.decode(value);
+                        const lines = chunk.split('\n');
+                        for (const line of lines) {
+                            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+                                try {
+                                    const data = JSON.parse(line.slice(6));
+                                    const content = data.choices[0]?.delta?.content || "";
+                                    fullResponse += content;
+                                    responseDiv.innerHTML = marked.parse(fullResponse);
+                                    this.chatHistory.scrollTop = this.chatHistory.scrollHeight;
+                                } catch (e) {}
+                            }
+                        }
+                    }
+
+                    this.messages.push({ role: "user", content: userText });
+                    this.messages.push({ role: "assistant", content: fullResponse });
+
+                } catch (err) {
+                    responseDiv.innerHTML = `Error: ${err.message}`;
+                } finally {
+                    this.btnSend.disabled = false;
+                }
+            }
+        }
+
+        // --- 4. MAIN APP ---
+        class PyIDE {
+            constructor() {
+                this.worker = null;
+                this.isBusy = false;
+                this.lastExecutedCode = ""; 
+
+                this.console = new Console('console-output');
+                
+                // Editor Setup
+                this.editor = CodeMirror.fromTextArea(document.getElementById('code-editor'), {
+                    mode: 'python', 
+                    theme: 'dracula', 
+                    lineNumbers: true, 
+                    indentUnit: 4, 
+                    matchBrackets: true
+                });
+                
+                this.btnRun = document.getElementById('btn-run');
+                this.status = document.getElementById('status');
+                
+                this.hasSharedBuffer = typeof SharedArrayBuffer !== 'undefined';
+                if(this.hasSharedBuffer) {
+                    this.sharedBuffer = new SharedArrayBuffer(1024);
+                    this.contentBuffer = new SharedArrayBuffer(1024 * 10);
+                    this.int32View = new Int32Array(this.sharedBuffer);
+                    this.uint8View = new Uint8Array(this.contentBuffer);
+                }
+
+                this.initWorker();
+                this.ai = new AIAssistant(this);
+                this.bindEvents();
+                
+                this.dragController = new DragController();
+                this.loadTheme();
+            }
+
+            // --- THEME LOGIC ---
+            toggleTheme() {
+                const currentTheme = document.body.getAttribute('data-theme');
+                const isLight = currentTheme === 'light';
+                
+                if (isLight) {
+                    // Switch to Dark
+                    document.body.removeAttribute('data-theme');
+                    this.editor.setOption('theme', 'dracula');
+                    document.getElementById('btn-theme').textContent = '🌙';
+                    localStorage.setItem('pyide_theme', 'dark');
+                } else {
+                    // Switch to Light
+                    document.body.setAttribute('data-theme', 'light');
+                    this.editor.setOption('theme', 'eclipse');
+                    document.getElementById('btn-theme').textContent = '☀️';
+                    localStorage.setItem('pyide_theme', 'light');
+                }
+            }
+
+            loadTheme() {
+                const savedTheme = localStorage.getItem('pyide_theme');
+                if (savedTheme === 'light') {
+                    document.body.setAttribute('data-theme', 'light');
+                    this.editor.setOption('theme', 'eclipse');
+                    document.getElementById('btn-theme').textContent = '☀️';
+                } else {
+                    // Default Dark
+                    document.body.removeAttribute('data-theme');
+                    this.editor.setOption('theme', 'dracula');
+                    document.getElementById('btn-theme').textContent = '🌙';
+                }
+            }
+
+            // --- WORKER LOGIC ---
+            initWorker() {
+                if (this.worker) this.worker.terminate();
+                const blob = new Blob([WORKER_CODE], { type: 'application/javascript' });
+                this.worker = new Worker(URL.createObjectURL(blob));
+                this.worker.onmessage = (e) => this.handleMsg(e.data);
+                this.worker.postMessage({ 
+                    cmd: 'init', 
+                    buffer: this.hasSharedBuffer ? this.sharedBuffer : null,
+                    contentBuffer: this.hasSharedBuffer ? this.contentBuffer : null
+                });
+            }
+
+            handleMsg(msg) {
+                switch(msg.type) {
+                    case 'READY': 
+                        this.setReady(true); 
+                        this.console.system("System Ready."); 
+                        break;
+                    case 'STDOUT': 
+                        this.console.write(msg.text); 
+                        break;
+                    case 'PLOT': 
+                        this.console.plot(msg.data); 
+                        break;
+                    case 'ERROR': 
+                        this.console.write(msg.text, 'error'); 
+                        this.setRun(false); 
+                        break;
+                    case 'FINISHED': 
+                        this.setRun(false); 
+                        this.console.system("Finished."); 
+                        break;
+                    case 'INPUT_REQUEST': 
+                        this.handleInput(msg.prompt); 
+                        break;
+                    case 'INSTALL_DONE': 
+                        this.console.system("Packages installed."); 
+                        this.setRun(false); 
+                        this.refreshPackages(); 
+                        break;
+                    case 'PACKAGES_LIST': 
+                        this.renderPackages(msg.data); 
+                        break;
+                }
+            }
+
+			handleInput(promptText) {
+                if (!this.hasSharedBuffer) {
+                    this.console.write("Error: Headers missing for blocked input.", 'error');
+                    return;
+                }
+                setTimeout(() => {
+                    const res = prompt(promptText || "Input:") || "";
+                    
+                    const enc = new TextEncoder().encode(res);
+                    this.int32View[1] = enc.length;
+                    this.uint8View.set(enc);
+                    Atomics.store(this.int32View, 0, 1);
+                    Atomics.notify(this.int32View, 0);
+
+                    if (promptText) {
+                        this.console.write(promptText); 
+                    }
+
+                    // 4. write the user's input to console (keep it green/bold for clarity)
+                    this.console.write(res + '\n', 'input');
+                }, 50);
+            }
+
+            toggleRun() {
+                if (this.isBusy) {
+                    this.worker.terminate();
+                    this.setRun(false);
+                    this.console.system("Stopped by user.", 'error');
+                    this.status.textContent = "Restarting...";
+                    this.initWorker();
+                } else {
+                    const code = this.editor.getValue();
+                    this.lastExecutedCode = code; 
+                    this.console.startNewRun();   
+                    
+                    this.setRun(true);
+                    this.worker.postMessage({ cmd: 'run', code: code });
+                }
+            }
+
+            installPackages(str) {
+                const list = str.split(/[\n,]/).map(p => p.trim()).filter(p => p);
+                if (!list.length) return;
+                this.console.system(`Installing: ${list.join(', ')}...`);
+                this.setRun(true);
+                this.worker.postMessage({ cmd: 'install', packages: list });
+            }
+
+            refreshPackages() { this.worker.postMessage({ cmd: 'list_packages' }); }
+            
+            renderPackages(jsonStr) {
+                const pkgs = JSON.parse(jsonStr);
+                const container = document.getElementById('installed-pkgs');
+                document.getElementById('pkg-count').textContent = `${pkgs.length} items`;
+                container.innerHTML = '';
+                if(pkgs.length === 0) container.innerHTML = '<span style="color:var(--text-dim)">None</span>';
+                
+                pkgs.forEach(p => {
+                    const badge = document.createElement('div');
+                    badge.className = 'pkg-badge';
+                    badge.innerHTML = `<span class="pkg-name" title="${p.name}">${p.name}</span><span class="pkg-ver">${p.version}</span>`;
+                    container.appendChild(badge);
+                });
+            }
+
+            setReady(r) { 
+                if(r) { 
+                    this.btnRun.disabled = false; 
+                    this.status.textContent = "Ready"; 
+                    this.status.className = "status-badge ready"; 
+                }
+            }
+
+            setRun(running) {
+                this.isBusy = running;
+                const icon = this.btnRun.querySelector('span');
+                const text = this.btnRun.lastChild;
+                if (running) {
+                    this.btnRun.className = "std-btn stop-btn";
+                    icon.textContent = "⏹"; text.textContent = " Stop";
+                    this.status.textContent = "Running"; this.status.className = "status-badge busy";
+                } else {
+                    this.btnRun.className = "std-btn primary";
+                    icon.textContent = "▶"; text.textContent = " Run";
+                    this.status.textContent = "Ready"; this.status.className = "status-badge ready";
+                }
+            }
+
+            bindEvents() {
+                this.btnRun.addEventListener('click', () => this.toggleRun());
+                document.getElementById('btn-clear').addEventListener('click', () => this.console.clear());
+                
+                // Theme Toggle
+                document.getElementById('btn-theme').addEventListener('click', () => this.toggleTheme());
+                
+                // Packages Logic
+                const modal = document.getElementById('pkg-modal');
+                document.getElementById('btn-packages').addEventListener('click', () => { modal.classList.add('active'); this.refreshPackages(); });
+                document.getElementById('btn-close-pkg').addEventListener('click', () => modal.classList.remove('active'));
+                document.getElementById('btn-install-pkg').addEventListener('click', () => {
+                    this.installPackages(document.getElementById('pkg-list').value);
+                    modal.classList.remove('active');
+                    document.getElementById('pkg-list').value = '';
+                });
+
+                this.editor.setValue(`# Welcome to PyIDE!
+# This is a place for you to practice and learn.
+# Click the 'Run' button (▶) at the top right to start!
+
+# --- 1. Variables & Printing ---
+print("Hello! I am your Python assistant.")
+print("-" * 30) # Prints a line separator
+
+# --- 2. Asking for User Input ---
+# This will pause the program and ask you to type something!
+name = input("What is your name? ")
+
+# --- 3. Using Logic (If/Else) ---
+if len(name) > 0:
+    print(f"Nice to meet you, {name}!")
+    print(f"Did you know your name has {len(name)} letters?")
+else:
+    print("You didn't type a name, but hello anyway!")
+
+# --- 4. Want to do more? ---
+# Try installing 'matplotlib' in the Packages menu 
+# to plot graphs!`);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => new PyIDE());
+    </script>
+</body>
+</html>
