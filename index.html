@@ -213,13 +213,13 @@
             <button id="btn-theme" class="icon-btn" title="Toggle Theme">🌙</button>
             <div style="width: 1px; height: 20px; background: var(--border); margin: 0 5px; flex-shrink: 0;"></div>
             <button id="btn-packages" class="std-btn">📦 Packages</button>
-			<button id="btn-ai-toggle" class="std-btn" style="border-color: var(--accent); color: var(--accent);">
+			<!-- <button id="btn-ai-toggle" class="std-btn" style="border-color: var(--accent); color: var(--accent);">
 				<svg class="btn-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
 					<path d="M9 2L10.5 7.5L16 9L10.5 10.5L9 16L7.5 10.5L2 9L7.5 7.5L9 2Z"/>
 					<path d="M17 15L18 18L21 19L18 20L17 23L16 20L13 19L16 18L17 15Z"/>
 				</svg>
 				AI
-			</button>
+			</button> -->
             <button id="btn-clear" class="std-btn">Clear</button>
             <button id="btn-run" class="std-btn primary" disabled>
                 <span>▶</span> Run
@@ -253,7 +253,7 @@
         </div>
 
         <!-- AI Sidebar -->
-        <div id="ai-sidebar" class="ai-sidebar collapsed">
+        <!-- <div id="ai-sidebar" class="ai-sidebar collapsed">
             <div class="panel-header" style="background-color: var(--bg-panel);">
                 <div style="display:flex; align-items:center; gap:10px;">
                     <button id="btn-ai-close-mobile" class="icon-btn" style="display:none;">←</button>
@@ -295,7 +295,7 @@
                     <button id="btn-send-chat" class="std-btn primary">Send</button>
                 </div>
             </div>
-        </div>
+        </div> -->
     </div>
 
     <!-- Package Modal -->
@@ -553,189 +553,189 @@ json.dumps(pkgs)
         `;
 
         // --- 3. AI ASSISTANT ---
-        class AIAssistant {
-            constructor(ideInstance) {
-                this.ide = ideInstance;
-                this.sidebar = document.getElementById('ai-sidebar');
-                this.settingsPanel = document.getElementById('ai-settings-panel');
-                this.chatHistory = document.getElementById('chat-history');
-                this.input = document.getElementById('chat-input');
-                this.btnSend = document.getElementById('btn-send-chat');
+//         class AIAssistant {
+//             constructor(ideInstance) {
+//                 this.ide = ideInstance;
+//                 this.sidebar = document.getElementById('ai-sidebar');
+//                 this.settingsPanel = document.getElementById('ai-settings-panel');
+//                 this.chatHistory = document.getElementById('chat-history');
+//                 this.input = document.getElementById('chat-input');
+//                 this.btnSend = document.getElementById('btn-send-chat');
                 
-                this.messages = [];
+//                 this.messages = [];
                 
-                this.systemPrompt = `You are an expert Python Tutor for beginners.
-GUIDELINES:
-1. PEDAGOGY: Use the Socratic method. Guide the student; do not give the answer immediately.
-2. INPUT DATA: You are provided with [LATEST RUN OUTPUT] and [PAST CONSOLE LOGS].
-   - **CRITICAL**: Use [LATEST RUN OUTPUT] as the current truth.
-   - Ignore errors in [PAST CONSOLE LOGS] if they are gone in [LATEST RUN OUTPUT].
-3. STALE CODE: If a [SYSTEM NOTE] indicates code has changed since the last run:
-   - Treat the current output as potentially outdated.
-   - Gently suggest the student run the code again to see updated results.
-4. **META-CONSTRAINT**: Do not quote tags like "[LATEST RUN OUTPUT]" in your response. Speak naturally.`;
+//                 this.systemPrompt = `You are an expert Python Tutor for beginners.
+// GUIDELINES:
+// 1. PEDAGOGY: Use the Socratic method. Guide the student; do not give the answer immediately.
+// 2. INPUT DATA: You are provided with [LATEST RUN OUTPUT] and [PAST CONSOLE LOGS].
+//    - **CRITICAL**: Use [LATEST RUN OUTPUT] as the current truth.
+//    - Ignore errors in [PAST CONSOLE LOGS] if they are gone in [LATEST RUN OUTPUT].
+// 3. STALE CODE: If a [SYSTEM NOTE] indicates code has changed since the last run:
+//    - Treat the current output as potentially outdated.
+//    - Gently suggest the student run the code again to see updated results.
+// 4. **META-CONSTRAINT**: Do not quote tags like "[LATEST RUN OUTPUT]" in your response. Speak naturally.`;
 
-                this.bindEvents();
-                this.loadSettings();
-                this.checkMobile();
-            }
+//                 this.bindEvents();
+//                 this.loadSettings();
+//                 this.checkMobile();
+//             }
 
-            checkMobile() {
-                if (window.innerWidth <= 768) {
-                    document.getElementById('btn-ai-close-mobile').style.display = 'block';
-                }
-            }
+//             checkMobile() {
+//                 if (window.innerWidth <= 768) {
+//                     document.getElementById('btn-ai-close-mobile').style.display = 'block';
+//                 }
+//             }
 
-            toggle() { this.sidebar.classList.toggle('collapsed'); }
+//             toggle() { this.sidebar.classList.toggle('collapsed'); }
 
-            bindEvents() {
-                document.getElementById('btn-ai-toggle').addEventListener('click', () => this.toggle());
-                document.getElementById('btn-ai-close-mobile').addEventListener('click', () => this.sidebar.classList.add('collapsed'));
-                document.getElementById('btn-ai-settings').addEventListener('click', () => this.settingsPanel.classList.toggle('active'));
+//             bindEvents() {
+//                 document.getElementById('btn-ai-toggle').addEventListener('click', () => this.toggle());
+//                 document.getElementById('btn-ai-close-mobile').addEventListener('click', () => this.sidebar.classList.add('collapsed'));
+//                 document.getElementById('btn-ai-settings').addEventListener('click', () => this.settingsPanel.classList.toggle('active'));
                 
-                // SAVE SETTINGS
-                document.getElementById('btn-save-settings').addEventListener('click', () => {
-                    this.saveSettings();
-                    this.settingsPanel.classList.remove('active');
-                    this.addMessage("system", "Settings saved successfully.");
-                });
+//                 // SAVE SETTINGS
+//                 document.getElementById('btn-save-settings').addEventListener('click', () => {
+//                     this.saveSettings();
+//                     this.settingsPanel.classList.remove('active');
+//                     this.addMessage("system", "Settings saved successfully.");
+//                 });
                 
-                this.btnSend.addEventListener('click', () => this.sendMessage());
-                this.input.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.sendMessage(); }
-                });
-            }
+//                 this.btnSend.addEventListener('click', () => this.sendMessage());
+//                 this.input.addEventListener('keydown', (e) => {
+//                     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.sendMessage(); }
+//                 });
+//             }
 
-            loadSettings() {
-                try {
-                    const config = JSON.parse(localStorage.getItem('pyide_ai_config') || '{}');
-                    if (config.key) document.getElementById('ai-key').value = config.key;
-                    if (config.endpoint) document.getElementById('ai-endpoint').value = config.endpoint;
-                    if (config.model) document.getElementById('ai-model').value = config.model;
-                } catch(e) {
-                    console.error("Failed to load settings:", e);
-                }
-            }
+//             loadSettings() {
+//                 try {
+//                     const config = JSON.parse(localStorage.getItem('pyide_ai_config') || '{}');
+//                     if (config.key) document.getElementById('ai-key').value = config.key;
+//                     if (config.endpoint) document.getElementById('ai-endpoint').value = config.endpoint;
+//                     if (config.model) document.getElementById('ai-model').value = config.model;
+//                 } catch(e) {
+//                     console.error("Failed to load settings:", e);
+//                 }
+//             }
 
-            saveSettings() {
-                try {
-                    const config = {
-                        key: document.getElementById('ai-key').value,
-                        endpoint: document.getElementById('ai-endpoint').value,
-                        model: document.getElementById('ai-model').value
-                    };
-                    localStorage.setItem('pyide_ai_config', JSON.stringify(config));
-                } catch(e) {
-                    alert("Could not save settings to LocalStorage.");
-                }
-            }
+//             saveSettings() {
+//                 try {
+//                     const config = {
+//                         key: document.getElementById('ai-key').value,
+//                         endpoint: document.getElementById('ai-endpoint').value,
+//                         model: document.getElementById('ai-model').value
+//                     };
+//                     localStorage.setItem('pyide_ai_config', JSON.stringify(config));
+//                 } catch(e) {
+//                     alert("Could not save settings to LocalStorage.");
+//                 }
+//             }
 
-            addMessage(role, text) {
-                const div = document.createElement('div');
-                div.className = `chat-message ${role}`;
-                if (role === 'ai') div.innerHTML = marked.parse(text);
-                else div.textContent = text;
-                this.chatHistory.appendChild(div);
-                this.chatHistory.scrollTop = this.chatHistory.scrollHeight;
-                return div;
-            }
+//             addMessage(role, text) {
+//                 const div = document.createElement('div');
+//                 div.className = `chat-message ${role}`;
+//                 if (role === 'ai') div.innerHTML = marked.parse(text);
+//                 else div.textContent = text;
+//                 this.chatHistory.appendChild(div);
+//                 this.chatHistory.scrollTop = this.chatHistory.scrollHeight;
+//                 return div;
+//             }
 
-            async sendMessage() {
-                const userText = this.input.value.trim();
-                const apiKey = document.getElementById('ai-key').value;
-                const endpoint = document.getElementById('ai-endpoint').value;
-                const model = document.getElementById('ai-model').value;
+//             async sendMessage() {
+//                 const userText = this.input.value.trim();
+//                 const apiKey = document.getElementById('ai-key').value;
+//                 const endpoint = document.getElementById('ai-endpoint').value;
+//                 const model = document.getElementById('ai-model').value;
 
-                if (!userText) return;
-                if (!apiKey) {
-                    alert("Please set API Key in settings");
-                    this.settingsPanel.classList.add('active');
-                    return;
-                }
+//                 if (!userText) return;
+//                 if (!apiKey) {
+//                     alert("Please set API Key in settings");
+//                     this.settingsPanel.classList.add('active');
+//                     return;
+//                 }
 
-                this.input.value = '';
-                this.addMessage('user', userText);
-                this.btnSend.disabled = true;
+//                 this.input.value = '';
+//                 this.addMessage('user', userText);
+//                 this.btnSend.disabled = true;
 
-                // State Tracking
-                const currentCode = this.ide.editor.getValue();
-                const lastRunCode = this.ide.lastExecutedCode || "";
-                const isStale = currentCode.trim() !== lastRunCode.trim();
+//                 // State Tracking
+//                 const currentCode = this.ide.editor.getValue();
+//                 const lastRunCode = this.ide.lastExecutedCode || "";
+//                 const isStale = currentCode.trim() !== lastRunCode.trim();
                 
-                let warningHeader = "";
-                if(isStale) {
-                    warningHeader = `[SYSTEM NOTE]: User code does NOT match the code that produced the output below. The output might be outdated.`;
-                }
+//                 let warningHeader = "";
+//                 if(isStale) {
+//                     warningHeader = `[SYSTEM NOTE]: User code does NOT match the code that produced the output below. The output might be outdated.`;
+//                 }
 
-                const contextMessage = `
-${warningHeader}
+//                 const contextMessage = `
+// ${warningHeader}
 
-[CURRENT EDITOR CODE]
-\`\`\`python
-${currentCode}
-\`\`\`
+// [CURRENT EDITOR CODE]
+// \`\`\`python
+// ${currentCode}
+// \`\`\`
 
-[LATEST RUN OUTPUT] (!!! This is the result of the most recent execution !!!)
-\`\`\`text
-${this.ide.console.getLatest() || "(No output generated in latest run)"}
-\`\`\`
+// [LATEST RUN OUTPUT] (!!! This is the result of the most recent execution !!!)
+// \`\`\`text
+// ${this.ide.console.getLatest() || "(No output generated in latest run)"}
+// \`\`\`
 
-[PAST CONSOLE LOGS] (Old history)
-\`\`\`text
-${this.ide.console.getHistory().substring(0, 2000)}... (truncated)
-\`\`\`
+// [PAST CONSOLE LOGS] (Old history)
+// \`\`\`text
+// ${this.ide.console.getHistory().substring(0, 2000)}... (truncated)
+// \`\`\`
 
-USER QUESTION: ${userText}
-`;
+// USER QUESTION: ${userText}
+// `;
                 
-                const messagesPayload = [
-                    { role: "system", content: this.systemPrompt },
-                    ...this.messages,
-                    { role: "user", content: contextMessage }
-                ];
+//                 const messagesPayload = [
+//                     { role: "system", content: this.systemPrompt },
+//                     ...this.messages,
+//                     { role: "user", content: contextMessage }
+//                 ];
 
-                const responseDiv = this.addMessage('ai', 'Thinking...');
-                let fullResponse = "";
+//                 const responseDiv = this.addMessage('ai', 'Thinking...');
+//                 let fullResponse = "";
 
-                try {
-                    const response = await fetch(endpoint, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-                        body: JSON.stringify({ model: model, messages: messagesPayload, stream: true })
-                    });
+//                 try {
+//                     const response = await fetch(endpoint, {
+//                         method: "POST",
+//                         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+//                         body: JSON.stringify({ model: model, messages: messagesPayload, stream: true })
+//                     });
 
-                    const reader = response.body.getReader();
-                    const decoder = new TextDecoder("utf-8");
-                    responseDiv.innerHTML = ""; 
+//                     const reader = response.body.getReader();
+//                     const decoder = new TextDecoder("utf-8");
+//                     responseDiv.innerHTML = ""; 
 
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
-                        const chunk = decoder.decode(value);
-                        const lines = chunk.split('\n');
-                        for (const line of lines) {
-                            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-                                try {
-                                    const data = JSON.parse(line.slice(6));
-                                    const content = data.choices[0]?.delta?.content || "";
-                                    fullResponse += content;
-                                    responseDiv.innerHTML = marked.parse(fullResponse);
-                                    this.chatHistory.scrollTop = this.chatHistory.scrollHeight;
-                                } catch (e) {}
-                            }
-                        }
-                    }
+//                     while (true) {
+//                         const { done, value } = await reader.read();
+//                         if (done) break;
+//                         const chunk = decoder.decode(value);
+//                         const lines = chunk.split('\n');
+//                         for (const line of lines) {
+//                             if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+//                                 try {
+//                                     const data = JSON.parse(line.slice(6));
+//                                     const content = data.choices[0]?.delta?.content || "";
+//                                     fullResponse += content;
+//                                     responseDiv.innerHTML = marked.parse(fullResponse);
+//                                     this.chatHistory.scrollTop = this.chatHistory.scrollHeight;
+//                                 } catch (e) {}
+//                             }
+//                         }
+//                     }
 
-                    this.messages.push({ role: "user", content: userText });
-                    this.messages.push({ role: "assistant", content: fullResponse });
+//                     this.messages.push({ role: "user", content: userText });
+//                     this.messages.push({ role: "assistant", content: fullResponse });
 
-                } catch (err) {
-                    responseDiv.innerHTML = `Error: ${err.message}`;
-                } finally {
-                    this.btnSend.disabled = false;
-                }
-            }
-        }
+//                 } catch (err) {
+//                     responseDiv.innerHTML = `Error: ${err.message}`;
+//                 } finally {
+//                     this.btnSend.disabled = false;
+//                 }
+//             }
+//         }
 
         // --- 4. MAIN APP ---
         class PyIDE {
@@ -767,7 +767,7 @@ USER QUESTION: ${userText}
                 }
 
                 this.initWorker();
-                this.ai = new AIAssistant(this);
+                // this.ai = new AIAssistant(this);
                 this.bindEvents();
                 
                 this.dragController = new DragController();
@@ -960,28 +960,100 @@ USER QUESTION: ${userText}
                     document.getElementById('pkg-list').value = '';
                 });
 
-                this.editor.setValue(`# Welcome to PyIDE!
-# This is a place for you to practice and learn.
-# Click the 'Run' button (▶) at the top right to start!
+                this.editor.setValue(`import marshal
+import base64
 
-# --- 1. Variables & Printing ---
-print("Hello! I am your Python assistant.")
-print("-" * 30) # Prints a line separator
+# NOTE: THIS CODE WILL NOT AUTOMATICALY SAVE
+# I would recommend copy/pasting the contents into a Google doc
+# (In fact, that is how you will be turning in your results to me)
 
-# --- 2. Asking for User Input ---
-# This will pause the program and ask you to type something!
-name = input("What is your name? ")
+# SETUP
+# loads in mystery functions: 
+#    * 5 verions of dicesum
+#    * 5 versions of is_anagram
+#    * 5 versions of threesort
+#    * 5 versions of rockpaperscissors
+mar_obj = base64.b64decode("4wAAAAAAAAAAAAAAAAEAAAAAAAAA8yQAAACXAGQAhABaAGQBhABaAWQChABaAmQDhABaA2QEhABaBGQFUwApBmMCAAAAAAAAAAAAAAACAAAAAwAAAPMMAAAAlwB8AHwBegoAAFMAqQFOqQCpAtoCZDHaAmQycwIAAAAgIPoLdGVzdG9uZS50eHTaCWRpY2VzdW1fMXIJAAAABQAAAPMLAAAAgADYCw2QAok3gE7zAAAAAGMCAAAAAAAAAAAAAAACAAAAAwAAAPMiAAAAlwB8AHwBawIAAAAAcgV8AGQBeggAAFMAfAB8AXoAAABTACkCTukCAAAAcgQAAAByBQAAAHMCAAAAICByCAAAANoJZGljZXN1bV8ycg4AAAAIAAAAcx0AAACAANgHCYhSgniAeNgPEZBRiXeIDtgLDZACiTeATnILAAAAYwIAAAAAAAAAAAAAAAIAAAADAAAA8yIAAACXAHwAZAFrBAAAAAByBXwBZAJ6DQAAfQF8AHwBegAAAFMAKQNO6QMAAADpAQAAAHIEAAAAcgUAAABzAgAAACAgcggAAADaCWRpY2VzdW1fM3ISAAAADQAAAHMdAAAAgADYBwmIQYJ2gHbYCAqIYYkHiALYCw2QAok3gE5yCwAAAGMCAAAAAAAAAAAAAAAEAAAAAwAAAPNAAAAAlwB0AQAAAAAAAAAAAAB8AKYBAACrAQAAAAAAAAAAdAEAAAAAAAAAAAAAfAGmAQAAqwEAAAAAAAAAAHoAAABTAHIDAAAAKQHaA3N0cnIFAAAAcwIAAAAgIHIIAAAA2glkaWNlc3VtXzRyFQAAABIAAABzGQAAAIAA3QsOiHKJN4w3lVOYEpFXlFfRCxzQBBxyCwAAAGMCAAAAAAAAAAAAAAACAAAAAwAAAPMMAAAAlwB8AHwBegAAAFMAcgMAAAByBAAAAHIFAAAAcwIAAAAgIHIIAAAA2glkaWNlc3VtXzVyFwAAABUAAAByCgAAAHILAAAATikFcgkAAAByDgAAAHISAAAAchUAAAByFwAAAHIEAAAAcgsAAAByCAAAAPoIPG1vZHVsZT5yGAAAAAEAAABzWgAAAPADAQEB8AoBARPwAAEBE/AAAQET8AYDARPwAAMBE/AAAwET8AoDARPwAAMBE/AAAwET8AoBAR3wAAEBHfAAAQEd8AYBARPwAAEBE/AAAQET8AABARPwAAEBE3ILAAAA")
+funcs = marshal.loads(mar_obj)
+exec(funcs)
+mar_obj = base64.b64decode('4wAAAAAAAAAAAAAAAAEAAAAAAAAA8yQAAACXAGQAhABaAGQBhABaAWQChABaAmQDhABaA2QEhABaBGQFUwApBmMCAAAAAAAAAAAAAAADAAAAAwAAAPNqAAAAlwBkAWQAbAB9AnwCoAEAAAAAAAAAAAAAAAAAAAAAAAAAAHwApgEAAKsBAAAAAAAAAAB9A3wCoAEAAAAAAAAAAAAAAAAAAAAAAAAAAHwApgEAAKsBAAAAAAAAAAB9BHwDfARrAgAAAABTAKkCTukAAAAAqQLaC2NvbGxlY3Rpb25z2gdDb3VudGVyqQXaBXdvcmQx2gV3b3JkMnIGAAAA2ghsZXR0ZXJzMdoIbGV0dGVyczJzBQAAACAgICAg+gt0ZXN0b25lLnR4dNoMaXNfYW5hZ3JhbV8xcg4AAAAIAAAA8z8AAACAANgEFtAEFtAEFtAEFtgPGtcPItIPIqA10Q8p1A8pgEjYDxrXDyLSDyKgNdEPKdQPKYBI2AsTkHjSCx/QBB/zAAAAAGMCAAAAAAAAAAAAAAAEAAAAAwAAAPNwAAAAlwBkAWQAbAB9AnwCoAEAAAAAAAAAAAAAAAAAAAAAAAAAAHwAfAB6AAAApgEAAKsBAAAAAAAAAAB9A3wCoAEAAAAAAAAAAAAAAAAAAAAAAAAAAHwBpgEAAKsBAAAAAAAAAAB9BHwDfARrAgAAAABTAHIDAAAAcgUAAAByCAAAAHMFAAAAICAgICByDQAAANoMaXNfYW5hZ3JhbV8ychIAAAAOAAAAc0MAAACAANgEFtAEFtAEFtAEFtgPGtcPItIPIqA1qDWhPdEPMdQPMYBI2A8a1w8i0g8ioDXRDynUDymASNgLE5B40gsf0AQfchAAAABjAgAAAAAAAAAAAAAAAwAAAAMAAADzlAAAAJcAdAEAAAAAAAAAAAAAfACmAQAAqwEAAAAAAAAAAGQBawIAAAAAcgJkAlMAZANkAGwBfQJ8AqACAAAAAAAAAAAAAAAAAAAAAAAAAAB8AKYBAACrAQAAAAAAAAAAfQN8AqACAAAAAAAAAAAAAAAAAAAAAAAAAAB8AaYBAACrAQAAAAAAAAAAfQR8A3wEawIAAAAAUwApBE7pAQAAAFRyBAAAACkD2gNsZW5yBgAAAHIHAAAAcggAAABzBQAAACAgICAgcg0AAADaDGlzX2FuYWdyYW1fM3IWAAAAFAAAAHNTAAAAgADdBwqINYF6hHqQUYJ/gH/YDxOIdNgEFtAEFtAEFtAEFtgPGtcPItIPIqA10Q8p1A8pgEjYDxrXDyLSDyKgNdEPKdQPKYBI2AsTkHjSCx/QBB9yEAAAAGMCAAAAAAAAAAAAAAACAAAAAwAAAPMOAAAAlwB8AHwBawIAAAAAUwApAU6pACkCcgkAAAByCgAAAHMCAAAAICByDQAAANoMaXNfYW5hZ3JhbV80chkAAAAcAAAAcwwAAACAANgLEJBFij7QBBlyEAAAAGMCAAAAAAAAAAAAAAADAAAAAwAAAPNqAAAAlwBkAWQAbAB9AnwCoAEAAAAAAAAAAAAAAAAAAAAAAAAAAHwApgEAAKsBAAAAAAAAAAB9A3wCoAEAAAAAAAAAAAAAAAAAAAAAAAAAAHwBpgEAAKsBAAAAAAAAAAB9BHwDfARrAgAAAABTAHIDAAAAcgUAAAByCAAAAHMFAAAAICAgICByDQAAANoMaXNfYW5hZ3JhbV81chsAAAAfAAAAcg8AAAByEAAAAE4pBXIOAAAAchIAAAByFgAAAHIZAAAAchsAAAByGAAAAHIQAAAAcg0AAAD6CDxtb2R1bGU+chwAAAABAAAAc1oAAADwAwEBAfAQBAEg8AAEASDwAAQBIPAMBAEg8AAEASDwAAQBIPAMBgEg8AAGASDwAAYBIPAQAQEa8AABARrwAAEBGvAGBAEg8AAEASDwAAQBIPAABAEg8AAEASByEAAAAA==')
+funcs = marshal.loads(mar_obj)
+exec(funcs)
+mar_obj = base64.b64decode('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')
+funcs = marshal.loads(mar_obj)
+exec(funcs)
+mar_obj = base64.b64decode('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')
+funcs = marshal.loads(mar_obj)
+exec(funcs)
 
-# --- 3. Using Logic (If/Else) ---
-if len(name) > 0:
-    print(f"Nice to meet you, {name}!")
-    print(f"Did you know your name has {len(name)} letters?")
-else:
-    print("You didn't type a name, but hello anyway!")
 
-# --- 4. Want to do more? ---
-# Try installing 'matplotlib' in the Packages menu 
-# to plot graphs!`);
+# YOUR TEST CODE STARTS HERE
+
+"""
+Which one works? 
+And for the ones that don't work, what doesn't work about it?
+
+dicesum_1:
+dicesum_2:
+dicesum_3:
+dicesum_4:
+dicesum_5:
+"""
+print(dicesum_1(3, 3))
+print(dicesum_2(3, 3))
+print(dicesum_3(3, 3))
+print(dicesum_4(3, 3))
+print(dicesum_5(3, 3))
+
+"""
+Which one works? 
+And for the ones that don't work, what doesn't work about it?
+
+is_anagram_1:
+is_anagram_2:
+is_anagram_3:
+is_anagram_4:
+is_anagram_5:
+"""
+print(is_anagram_1("hello", "lehol"))
+print(is_anagram_2("hello", "lehol"))
+print(is_anagram_3("hello", "lehol"))
+print(is_anagram_4("hello", "lehol"))
+print(is_anagram_5("hello", "lehol"))
+
+"""
+Which one works? 
+And for the ones that don't work, what doesn't work about it?
+
+threesort_1:
+threesort_2:
+threesort_3:
+threesort_4:
+threesort_5:
+"""
+print(threesort_1(3, 4, 5))
+print(threesort_2(3, 4, 5))
+print(threesort_3(3, 4, 5))
+print(threesort_4(3, 4, 5))
+print(threesort_5(3, 4, 5))
+
+"""
+Which one works? 
+And for the ones that don't work, what doesn't work about it?
+
+rockpaperscissors_1:
+rockpaperscissors_2:
+rockpaperscissors_3:
+rockpaperscissors_4:
+rockpaperscissors_5:
+"""
+print(rockpaperscissors_1("rock", "scissors"))
+print(rockpaperscissors_2("rock", "scissors"))
+print(rockpaperscissors_3("rock", "scissors"))
+print(rockpaperscissors_4("rock", "scissors"))
+print(rockpaperscissors_5("rock", "scissors"))
+
+`);
             }
         }
 
